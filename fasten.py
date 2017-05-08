@@ -1,6 +1,7 @@
 import os.path
 import codecs 
-'''from docx import Document '''
+import requests
+import config
 
 
 def read_text(path):
@@ -15,10 +16,11 @@ def read_text(path):
 	else:
 		raise TypeError
 		
-	'''	elif os.path.splitext(path)[1] == '.doc' or os.path.splitext(path)[1] == '.docx':
-		file = codecs.open(path, encoding='utf-8', mode='r')
-		document = Document(file)
-		file.close()'''
+	return document
+
+
+def make_good_word(document):
+	'''This function prepares words to translate'''
 	list_word = []
 
 	for word in document.split():
@@ -27,7 +29,31 @@ def read_text(path):
 			word = word[1:]
 		if ord(word_upper[-1]) > 90 or ord(word_upper[-1]) < 65:
 			word = word[:-1]
-		list_word.append(word)
+		if list_word.count(word) == 0:
+			list_word.append(word)
 
 	return list_word
 
+
+def make_post_for_translate(list_word):
+
+	articles = []
+
+	for word in list_word:
+
+		url = '{domain}/dicservice.json/lookup?key={key}&lang=en-ru&text={text}&ui={ui}'.format(
+			domain='https://dictionary.yandex.net/api/v1',
+			text=word,
+			key=config.api_key_for_dictionary,
+			ui='ru'
+			)
+
+		responce = requests.get(url).json()
+		
+		articles.append(responce)
+
+	return articles
+
+
+#print(make_good_word(read_text('C:/Users/Администратор/Documents/cs102/FastEnglish/кейт аткинсон.txt')))
+print(make_post_for_translate(['proud']))
