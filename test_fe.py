@@ -14,6 +14,11 @@ class TextTestsFE(unittest.TestCase):
 		with self.assertRaises(FileNotFoundError):
 			fasten.read_text(path)
 
+	def test_read_text_wrong_path_2(self):
+		path ='C:/Users/Администратор/Documents/cs102/FastEnglish/кейт аткисон.txt'
+		with self.assertRaises(FileNotFoundError):
+			fasten.read_text(path)
+
 	def test_read_text_empty_document(self):
 		path = 'C:/Users/Администратор/Documents/cs102/FastEnglish/пустой.txt'
 		self.assertEqual(fasten.read_text(path), '')
@@ -29,9 +34,11 @@ class TextTestsFE(unittest.TestCase):
 		self.assertEqual(fasten.make_good_word(document), 
 			['Mr','and','Mrs','Dursley','of','number','four','Privet','Drive','were','proud','to','say','that'])
 
-
-class TimeTestEF(unittest.TestCase):
-	pass
+	def test_translate(self):
+		self.assertEqual(fasten.make_translate(['proud', 'son']), 
+			[{'word': 'proud', 'pos': 'прилагательное, причастие', 
+			'tr': 'гордый, надменный, высокомерный, самолюбивый, горделивый, великолепный, величавый, ретивый, вздувшийся'},
+			{'word': 'son', 'pos':'существительное', 'tr': 'сын, потомок, сынок, выходец'}])
 
 
 if __name__ == '__main__':
