@@ -2,6 +2,8 @@ import os.path
 import codecs 
 import requests
 import config
+import sys
+
 
 
 class FileCreateException(Exception):
@@ -113,7 +115,46 @@ def create_file(path, articles):
 
 	return new_path
 
-#print(make_good_word(read_text('C:/Users/Администратор/Documents/cs102/FastEnglish/кейт аткинсон.txt')))
-#print(make_translate(['son']))
-#print(create_file('C:/Users/Администратор/Documents/cs102/FastEnglish/кейт аткинсон.txt', [{'word': 'proud', 'pos': 'прилагательное, причастие', 
-			
+
+def full_translate(path):
+
+	try:
+		document = read_text()
+	except FileNotFoundError:
+		str_error = 'Некорректный путь или неправильное имя файла'
+		return str_error
+	except TypeError:
+		str_error = 'К сожалению, формат Вашего файла не подходит. Требуется txt'
+		return str_error
+	except:
+		str_error = 'Ошибка. Попробуйте еще раз.'
+		return str_error
+
+	try:
+		list_word = make_good_word(document)
+	except:
+		str_error = 'Ошибка. Некорректное содержимое файла'
+		return str_error
+
+	try:
+		articles = make_translate(list_word) 
+	except:
+		str_error = 'Ошибка перевода. Возможно, отсутствует подключение. Проверьте подключение и \
+				попробуйте еще раз'
+		return str_error
+
+	try:
+		create_file(articles)
+	except FileCreateException:
+		str_error = 'Ошибка создания файла. Попробуйте еще раз.'
+		return str_error
+
+	return True
+
+
+if __name__ == '__main__':
+	_, path = sys.argv
+	translate = full_translate(path)
+	if type(translate) == str:
+		print(translate)
+

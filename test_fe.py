@@ -5,31 +5,31 @@ import fasten
 class TextTestsFE(unittest.TestCase):
 
 	def test_read_text_docx(self):
-		path ='C:/Users/Администратор/Documents/cs102/FastEnglish/кейт аткинсон.docx'
+		path ='C:/Users/Администратор/Documents/cs102/FastEnglish/texts/кейт аткинсон.docx'
 		with self.assertRaises(TypeError):
 			fasten.read_text(path)
 
 	def test_read_text_wrong_path(self):
-		path ='C:/Users/Администратор/Documents/cs102/FastEnglish/кейт аткинсон'
+		path ='C:/Users/Администратор/Documents/cs102/FastEnglish/texts/кейт аткинсон'
 		with self.assertRaises(FileNotFoundError):
 			fasten.read_text(path)
 
 	def test_read_text_wrong_path_2(self):
-		path ='C:/Users/Администратор/Documents/cs102/FastEnglish/кейт аткисон.txt'
+		path ='C:/Users/Администратор/Documents/cs102/FastEnglish/texts/кейт аткисон.txt'
 		with self.assertRaises(FileNotFoundError):
 			fasten.read_text(path)
 
 	def test_read_text_empty_document(self):
-		path = 'C:/Users/Администратор/Documents/cs102/FastEnglish/пустой.txt'
+		path = 'C:/Users/Администратор/Documents/cs102/FastEnglish/texts/пустой.txt'
 		self.assertEqual(fasten.read_text(path), '')
 
 	def test_read_text_txt(self):
-		path = 'C:/Users/Администратор/Documents/cs102/FastEnglish/кейт аткинсон.txt'
+		path = 'C:/Users/Администратор/Documents/cs102/FastEnglish/texts/кейт аткинсон.txt'
 		self.assertEqual(fasten.read_text(path), 
 			'Mr. and Mrs. Dursley, of number! four, Privet Drive, were proud to say that Mrs')
 
 	def test_make_good_word(self):
-		path = 'C:/Users/Администратор/Documents/cs102/FastEnglish/кейт аткинсон.txt'
+		path = 'C:/Users/Администратор/Documents/cs102/FastEnglish/texts/кейт аткинсон.txt'
 		document = fasten.read_text(path)
 		self.assertEqual(fasten.make_good_word(document), 
 			['Mr','and','Mrs','Dursley','of','number','four','Privet','Drive','were','proud','to','say','that'])
