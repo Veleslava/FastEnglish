@@ -35,10 +35,10 @@ class TextTestsFE(unittest.TestCase):
 			['Mr','and','Mrs','Dursley','of','number','four','Privet','Drive','were','proud','to','say','that'])
 
 	def test_translate(self):
-		self.assertEqual(fasten.make_translate(['proud', 'son']), 
-			[{'word': 'proud', 'pos': 'прилагательное, причастие', 
-			'tr': 'гордый, надменный, высокомерный, самолюбивый, горделивый, великолепный, величавый, ретивый, вздувшийся'},
-			{'word': 'son', 'pos':'существительное', 'tr': 'сын, потомок, сынок, выходец'}])
+		self.assertEqual(fasten.make_translate(['proud', 'son', 'Dursley']), 
+									([{'word': 'proud', 'pos': 'прилагательное, причастие', 
+									'tr': 'гордый, надменный, высокомерный, самолюбивый, горделивый, великолепный, величавый, ретивый, вздувшийся'},
+									{'word': 'son', 'pos':'существительное', 'tr': 'сын, потомок, сынок, выходец'}], ['Dursley']))
 
 
 if __name__ == '__main__':

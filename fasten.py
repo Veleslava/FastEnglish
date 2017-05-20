@@ -45,6 +45,7 @@ def make_good_word(document):
 def make_translate(list_word):
 
 	articles = []
+	error_words = []
 
 	for word in list_word:
 
@@ -58,29 +59,29 @@ def make_translate(list_word):
 			)
 
 		responce = requests.get(url).json()
-		temp_dict['word'] = responce['def'][0]['text']
-		count = 0
-		temp_list = []
-		temp_dict['pos'] = responce['def'][0]['pos']
-		temp_dict['tr'] = responce['def'][0]['tr'][0]['text']
+		try:
+			temp_dict['word'] = responce['def'][0]['text']
+			count = 0
+			temp_list = []
+			temp_dict['pos'] = responce['def'][0]['pos']
+			temp_dict['tr'] = responce['def'][0]['tr'][0]['text']
 
-		for i in responce['def']:
+			for i in responce['def']:
+				if temp_dict['pos'].find(i['pos']) < 0:
+					temp_dict['pos'] += ', ' + i['pos']
+				for n in i['tr']:
+					if temp_dict['tr'].find(n['text']) < 0:
+						temp_dict['tr'] += ', ' + n['text']
+					try:
+						for index in range(len(n['syn'])):
+							temp_dict['tr'] += ', ' + n['syn'][index]['text']
+					except:
+						pass			
+			articles.append(temp_dict)
+		except:
+			error_words.append(word)
 
-			if temp_dict['pos'].find(i['pos']) < 0:
-				temp_dict['pos'] += ', ' + i['pos']
-
-			for n in i['tr']:
-				if temp_dict['tr'].find(n['text']) < 0:
-					temp_dict['tr'] += ', ' + n['text']
-				try:
-					for index in range(len(n['syn'])):
-						temp_dict['tr'] += ', ' + n['syn'][index]['text']
-				except:
-					pass
-		
-		articles.append(temp_dict)
-
-	return articles
+	return articles, error_words
 
 
 def create_file(path, articles):
@@ -119,12 +120,14 @@ def create_file(path, articles):
 def full_translate(path):
 
 	try:
-		document = read_text()
+		document = read_text(path)
 	except FileNotFoundError:
-		str_error = 'Некорректный путь или неправильное имя файла'
+		str_error = 'Некорректный путь или неправильное имя файла.\
+		Внимание! В имени файла не должно быть пробелов!'
 		return str_error
 	except TypeError:
-		str_error = 'К сожалению, формат Вашего файла не подходит. Требуется txt'
+		str_error = 'Произошла ошибка при чтении файлаю. Возможно, неправильный формат файла(\
+		требуется txt) или неправильный путь к файлу. Замените обратный слеш на прямой'
 		return str_error
 	except:
 		str_error = 'Ошибка. Попробуйте еще раз.'
@@ -137,14 +140,18 @@ def full_translate(path):
 		return str_error
 
 	try:
-		articles = make_translate(list_word) 
+		articles, error_words = make_translate(list_word) 
 	except:
 		str_error = 'Ошибка перевода. Возможно, отсутствует подключение. Проверьте подключение и \
 				попробуйте еще раз'
 		return str_error
 
 	try:
-		create_file(articles)
+		create_file(path=path, articles=articles)
+		if len(error_words) != 0:
+			print('К сожалению, эти слова не удалось перевести: ')
+			for i in error_words:
+				print(i)
 	except FileCreateException:
 		str_error = 'Ошибка создания файла. Попробуйте еще раз.'
 		return str_error
@@ -153,7 +160,9 @@ def full_translate(path):
 
 
 if __name__ == '__main__':
-	_, path = sys.argv
+	path = sys.argv[1]
+	#path = os.path.normcase(path[1])
+	print(path)
 	translate = full_translate(path)
 	if type(translate) == str:
 		print(translate)
