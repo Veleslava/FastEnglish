@@ -34,12 +34,17 @@ class TextTestsFE(unittest.TestCase):
 		self.assertEqual(fasten.make_good_word(document), 
 			['Mr','and','Mrs','Dursley','of','number','four','Privet','Drive','were','proud','to','say','that'])
 
+
+class TestTranslateEF(unittest.TestCase):
+
 	def test_translate(self):
 		self.assertEqual(fasten.make_translate(['proud', 'son', 'Dursley']), 
 									([{'word': 'proud', 'pos': 'прилагательное, причастие', 
 									'tr': 'гордый, надменный, высокомерный, самолюбивый, горделивый, великолепный, величавый, ретивый, вздувшийся'},
 									{'word': 'son', 'pos':'существительное', 'tr': 'сын, потомок, сынок, выходец'}], ['Dursley']))
 
+	def test_rood_word(self):
+		self.assertEqual(fasten.make_rood_word('non-educational'), 'educat')
 
 if __name__ == '__main__':
     unittest.main()
