@@ -145,8 +145,8 @@ def create_file(path, articles):
 
 	if os.path.isfile(new_path) == True:
 		new_attempt = new_path.split('.') 
-		temp_path = new_attempt[0] + str(n) + '.' + new_attempt[1]
 		n += 1
+		temp_path = new_attempt[0] + str(n) + '.' + new_attempt[1]
 		flag = 1
 
 	if flag == 1: 
@@ -359,7 +359,7 @@ if __name__ == '__main__':
 		print('smart - умный перевод слов, подходит тем, кто знаком со словообразованием')
 		print('manual - позволяет вам в ручную определить какие слова переводить, подходит для небольших текстов')
 	else:
-		path = os.path.normcase(r(input('Введите путь к файлу. Используйте прямой слеш')))
+		path = os.path.normcase(input('Введите путь к файлу. '))
 		if command == 'full':
 			translate = full_translate(path)
 		elif command == 'smart':
