@@ -90,4 +90,4 @@ ENV/
 
 #From my project
 gui.py
-tests.py
+test.py
