@@ -1,5 +1,6 @@
 import unittest
 import fasten
+import os.path
 
 
 class TextTestsFE(unittest.TestCase):
@@ -44,7 +45,11 @@ class TestTranslateEF(unittest.TestCase):
 		self.assertEqual(fasten.make_translate(['proud', 'son', 'Dursley']), 
 									([{'word': 'proud', 'pos': 'прилагательное, причастие', 
 									'tr': 'гордый, надменный, высокомерный, самолюбивый, горделивый, великолепный, величавый, ретивый, вздувшийся'},
-									{'word': 'son', 'pos':'существительное', 'tr': 'сын, потомок, сынок, выходец'}], ['Dursley']))
+									{'word': 'son', 'pos':'существительное', 'tr': 'сын, потомок, сынок, выходец'}], ['Dursley'], 1))
+
+	def test_smart_translate(self):
+		self.assertEqual(fasten.smart_translate(['proud', 'son', 'take']), ['take'])
+		self.assertEqual(fasten.smart_translate(['proud', 'son']), [])
 
 
 if __name__ == '__main__':

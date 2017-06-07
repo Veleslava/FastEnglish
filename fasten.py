@@ -4,8 +4,10 @@ import requests
 import config
 import sys
 from sqlalchemy.orm import sessionmaker
-from sqlalchemy import create_engine, Column, String, Integer
+from sqlalchemy import create_engine, Column, String, Integer, Date, Time, Boolean
 from sqlalchemy.ext.declarative import declarative_base
+import threading
+from datetime import datetime
 
 
 class FileCreateException(Exception):
@@ -26,6 +28,16 @@ class Word(Base):
 	translate = Column(String)
 	count_translate = Column(Integer)
 	part_of_speech = Column(String)
+
+
+class History(Base):
+	__tablename__ = 'history'
+	id = Column(Integer, primary_key = True)
+	path = Column(String)
+	date = Column(Date)
+	time = Column(Time)
+	count_request = Column(Integer)
+	execution = Column(Boolean)
 
 
 def read_text(path):
@@ -83,6 +95,7 @@ def make_translate(list_word):
 	s = session()
 	articles = []
 	error_words = []
+	count_request = 0
 
 	for word in list_word:
 		temp_dict = {}
@@ -120,9 +133,11 @@ def make_translate(list_word):
 							part_of_speech=temp_dict['pos'])
 				s.add(new)
 				s.commit()
+				
 			except:
 				error_words.append(word)
-			
+			count_request += 1
+
 		else:
 			point = s.query(Word).filter(Word.full_word==word).all()[0]
 			point.count_translate += 1
@@ -132,7 +147,7 @@ def make_translate(list_word):
 			temp_dict['tr'] = point.translate
 			articles.append(temp_dict)
 
-	return articles, error_words
+	return articles, error_words, count_request
 
 
 def create_file(path, articles):
@@ -141,16 +156,11 @@ def create_file(path, articles):
 	new_name = path[1].split('.')
 	new_path = path[0] + '/' + new_name[0] + '_english_words.' + new_name[1]
 	n = 1
-	flag = 0
 
-	if os.path.isfile(new_path) == True:
+	while os.path.isfile(new_path) == True:
 		new_attempt = new_path.split('.') 
 		n += 1
-		temp_path = new_attempt[0] + str(n) + '.' + new_attempt[1]
-		flag = 1
-
-	if flag == 1: 
-		new_path = temp_path
+		new_path = new_attempt[0] + str(n) + '.' + new_attempt[1]
 
 	file = open(new_path, 'w')
 	try:
@@ -168,49 +178,8 @@ def create_file(path, articles):
 	return new_path
 
 
-def full_translate(path):
-
-	try:
-		document = read_text(path)
-	except FileNotFoundError:
-		str_error = 'Некорректный путь или неправильное имя файла.\
-		Внимание! В имени файла не должно быть пробелов!'
-		return str_error
-	except TypeError:
-		str_error = 'Произошла ошибка при чтении файлаю. Возможно, неправильный формат файла(\
-		требуется txt) или неправильный путь к файлу. Замените обратный слеш на прямой'
-		return str_error
-	except:
-		str_error = 'Ошибка. Попробуйте еще раз.'
-		return str_error
-
-	try:
-		list_word = make_good_word(document)
-	except:
-		str_error = 'Ошибка. Некорректное содержимое файла'
-		return str_error
-
-	try:
-		articles, error_words = make_translate(list_word) 
-	except:
-		str_error = 'Ошибка перевода. Возможно, отсутствует подключение. Проверьте подключение и \
-				попробуйте еще раз'
-		return str_error
-
-	try:
-		create_file(path=path, articles=articles)
-		if len(error_words) != 0:
-			print('К сожалению, эти слова не удалось перевести: ')
-			for i in error_words:
-				print(i)
-	except FileCreateException:
-		str_error = 'Ошибка создания файла. Попробуйте еще раз.'
-		return str_error
-
-	return error_words
-
-
 def word_translate():
+	count_request = 0
 
 	words = input('Введите ваши слова через запятую.')
 	while words != '0':
@@ -219,44 +188,30 @@ def word_translate():
 		except:
 			print('Упс, что-то пошло не так. Попробуйте еще раз. Для выхода введите 0.')
 			words = input()
-		translate, error_words = make_translate(list_word)
+		translate, error_words, count = make_translate(list_word)
 		for i in translate:
 			print(i)
 		words = input('Вы можете ввести новые слова. Если вы хотите выйти введите 0.')
 		if len(error_words) != 0:
 			for a in error_words:
 				print(a)
-	return translate, error_words
+		count_request += count
 
-
-def smart_translate(path):
-	'''Слово проверяется в бд. Если оно там есть и переводилось менее 3 раз, то добавляется в общий словарь. Если
-	нет, то удаляются приставки, словоформы и т.д. и проверяется по оставшейся части, если находится несколько слов (более 3)
-	с таким корнем, то перевод не производится'''
 	engine = create_engine("sqlite:///dictionary.db")
 	Base.metadata.create_all(bind=engine)
 	session = sessionmaker(bind=engine)
 	s = session()
-	try:
-		document = read_text(path)
-	except FileNotFoundError:
-		str_error = 'Некорректный путь или неправильное имя файла.\
-		Внимание! В имени файла не должно быть пробелов!'
-		return str_error
-	except TypeError:
-		str_error = 'Произошла ошибка при чтении файлаю. Возможно, неправильный формат файла(\
-		требуется txt) или неправильный путь к файлу. Замените обратный слеш на прямой'
-		return str_error
-	except:
-		str_error = 'Ошибка. Попробуйте еще раз.'
-		return str_error
+	time = datetime.time(datetime.today())
+	date = datetime.date(datetime.today())
 
-	try:
-		list_word = make_good_word(document)
-	except:
-		str_error = 'Ошибка. Некорректное содержимое файла'
-		return str_error
+	record = History(count_request=count_request, path=path, execution=True, time=time, date=date)
+	s.add(record)
+	s.commit()
 
+	return translate, error_words
+
+
+def smart_translate(list_word):
 	engine = create_engine("sqlite:///dictionary.db")
 	Base.metadata.create_all(bind=engine)
 	session = sessionmaker(bind=engine)
@@ -264,6 +219,8 @@ def smart_translate(path):
 	list_word_for_translate = []
 
 	for word in list_word:
+		#query = s.query(Word).filter(Word.full_word==word).all()
+		#if not query or query[0].count_translate <= 3:
 		if not s.query(Word).filter(Word.full_word==word).all():
 			root_word = make_rood_word(word)
 			if not s.query(Word).filter(Word.root_word==root_word).all():
@@ -277,46 +234,10 @@ def smart_translate(path):
 			if point <= 3:
 				list_word_for_translate.append(word)
 
-	try:
-		articles, error_words = make_translate(list_word_for_translate) 
-	except:
-		str_error = 'Ошибка перевода.'
-		return str_error
+	return list_word_for_translate
 
-	try:
-		create_file(path=path, articles=articles)
-		if len(error_words) != 0:
-			print('К сожалению, эти слова не удалось перевести: ')
-			for i in error_words:
-				print(i)
-	except FileCreateException:
-		str_error = 'Ошибка создания файла. Попробуйте еще раз.'
-		return str_error
-
-	return error_words
-
-
-def manual_translate(path):
 	
-	try: 
-		document = read_text(path)
-	except FileNotFoundError:
-		str_error = 'Некорректный путь или неправильное имя файла.\
-		Внимание! В имени файла не должно быть пробелов!'
-		return str_error
-	except TypeError:
-		str_error = 'Произошла ошибка при чтении файлаю. Возможно, неправильный формат файла(\
-		требуется txt) или неправильный путь к файлу. Замените обратный слеш на прямой'
-		return str_error
-	except:
-		str_error = 'Ошибка. Попробуйте еще раз.'
-		return str_error
-
-	try:
-		list_word = make_good_word(document)
-	except:
-		str_error = 'Ошибка. Некорректное содержимое файла'
-		return str_error
+def manual_translate(list_word):
 
 	print('Сейчас вам будут предложены слова из текста. Выберите те из них, которые вы хотите перевести.\
 		Введите 1, если вам нужен перевод этого слова, и 0, вы уже его знаете.')
@@ -328,11 +249,57 @@ def manual_translate(path):
 		if flag == '1':
 			new_list_word.append(word)
 
+	return new_list_word
+
+
+def text_to_list(path):
 	try:
-		articles, error_words = make_translate(new_list_word) 
-	except:
-		str_error = 'Ошибка перевода.'
+		document = read_text(path)
+	except FileNotFoundError:
+		str_error = 'Некорректный путь или неправильное имя файла.\
+		Внимание! В имени файла не должно быть пробелов!'
 		return str_error
+	except TypeError:
+		str_error = 'Произошла ошибка при чтении файлаю. Возможно, неправильный формат файла\
+		(требуется txt) или неправильный путь к файлу. '
+		return str_error
+	except:
+		str_error = 'Ошибка. Попробуйте еще раз.'
+		return str_error
+
+	try:
+		list_word = make_good_word(document)
+	except:
+		str_error = 'Ошибка. Некорректное содержимое файла'
+		return str_error
+
+	return list_word
+
+
+def text_to_translate(list_word, path):
+
+	try:
+		translate = make_translate(list_word)
+		if len(translate) == 3:
+			articles = translate[0]
+			error_words = translate[1] 
+			count_request = translate[2]
+	except:
+		str_error = 'Ошибка перевода. Возможно, отсутствует подключение. Проверьте подключение и попробуйте еще раз '
+		return str_error
+
+	engine = create_engine("sqlite:///dictionary.db")
+	Base.metadata.create_all(bind=engine)
+	session = sessionmaker(bind=engine)
+	s = session()
+
+	time = datetime.time(datetime.today())
+	date = datetime.date(datetime.today())
+
+	if count_request != 0:
+		record = History(count_request=count_request, path=path, execution=True, time=time, date=date)
+		s.add(record)
+		s.commit()
 
 	try:
 		create_file(path=path, articles=articles)
@@ -341,31 +308,95 @@ def manual_translate(path):
 			for i in error_words:
 				print(i)
 	except FileCreateException:
-		str_error = 'Ошибка создания файла. Попробуйте еще раз.'
+		str_error = 'Ошибка создания файла. Попробуйте еще раз. '
 		return str_error
 
 	return error_words
 
 
-if __name__ == '__main__':
-	 
-	command = sys.argv[1]
-	if command == 'word':
-		word_translate()
-
-	elif command == 'help':
-		print('word - перевод одного или нескольких слов')
-		print('full - перевод всех слов в тексте, подходит для новичков')
-		print('smart - умный перевод слов, подходит тем, кто знаком со словообразованием')
-		print('manual - позволяет вам в ручную определить какие слова переводить, подходит для небольших текстов')
+def check_time():
+	engine = create_engine("sqlite:///dictionary.db")
+	Base.metadata.create_all(bind=engine)
+	session = sessionmaker(bind=engine)
+	s = session()
+	
+	today = datetime.today()
+	today_time = datetime.time(today)
+	today_date = datetime.date(today)
+	yesterday = today_date.day 
+	if yesterday == 1:
+		year = today_date.year[2:]
+		month = today_date.month - 1
+		if today_date.month in [2, 4, 6, 8, 9, 11]:
+			day = 31
+		elif today_date.month == 3:
+			day = 28
+		elif today_date.month == 1:
+			day = 31
+			year = today_date.year - 1
+			month = 12
+		else:
+			day = 30
 	else:
-		path = os.path.normcase(input('Введите путь к файлу. '))
-		if command == 'full':
-			translate = full_translate(path)
-		elif command == 'smart':
-			translate = smart_translate(path)
-		elif command == 'manual':
-			translate = manual_translate(path)
+		day = yesterday - 1
+		month = today_date.month
+		year = str(today_date.year)[2:]
 
-		if type(translate) == str:
-			print(translate)
+	yesterday_day = datetime.strptime('{} {} {}'.format(day, month, int(year)), '%d %m %y')
+
+	count = 0
+
+	if not s.query(History).filter(History.date==today_date).all():
+		for i in s.query(History).filter(History.date==today_date).all():
+			count = int(i.count_request)
+
+	if not s.query(History).filter(History.date==yesterday_day and History.time <= today_time).all():
+		for i in s.query(History).filter(History.date==today_date).all():
+			count = int(i.count_request)
+
+	if count < 9600:
+		return True, count
+	else:
+		return False, count
+
+
+if __name__ == '__main__':
+
+	if check_time == False:
+		print('К сожалению, сервис перевода, которым пользуется программа, ограничивает количество запросов в сутки.\
+			На данный момент, количество запросов исчерпано. Вы можете попробовать воспользоваться этим приложением или подождать до завтра.\
+			Приносим свои извинения за доставленные неудобства. Хотите продолжить?(Введите 1 - да или 0 - нет) ')
+		flag = input()
+	else:
+		flag = 1
+		
+	if flag == 1:
+		command = sys.argv[1]
+
+		if command == 'word':
+			word_translate()
+		elif command == 'help':
+			print('word - перевод одного или нескольких слов')
+			print('full - перевод всех слов в тексте, подходит для новичков')
+			print('smart - умный перевод слов, подходит тем, кто знаком со словообразованием')
+			print('manual - позволяет вам в ручную определить какие слова переводить, подходит для небольших текстов')
+		else:
+			path = os.path.normcase(input('Введите путь к файлу. '))
+			list_word = text_to_list(path)
+			if type(list_word) != str:
+				if command == 'full':
+					translate = text_to_translate(list_word=list_word, path=path)
+				elif command == 'smart':
+					new_list_word = smart_translate(list_word)
+					translate = text_to_translate(list_word=list_word, path=path)
+				elif command == 'manual':
+					new_list_word = manual_translate(list_word)
+					translate = text_to_translate(list_word=list_word, path=path)
+				if type(translate) == str:
+					print(translate)
+				else:
+					print('Перевод завершен')
+			else:
+				print(list_word)
+
+		
